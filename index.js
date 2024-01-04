@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import 'dotenv/config';
 import express from 'express';
 import initApp from './src/modules/app.router.js';

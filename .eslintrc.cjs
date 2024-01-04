@@ -23,11 +23,11 @@ module.exports = {
     'no-unused-vars': ['warn', { argsIgnorePattern: 'req|res|next|err|__' }],
     'no-console': 'warn',
     'no-mixed-operators': 'error',
-    'arrow-spacing': 'error',
     'no-confusing-arrow': 'error',
     'no-duplicate-imports': 'error',
     'no-var': 'error',
     'object-shorthand': 'off',
+    'arrow-spacing': 'off',
   },
   globals: {
     process: true, // Declare 'process' as a global variable
