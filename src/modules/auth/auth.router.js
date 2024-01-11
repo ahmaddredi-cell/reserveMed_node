@@ -7,10 +7,16 @@ import fileUpload, { fileValidation } from '../../utils/multer.js';
 
 const router = Router();
 router.post(
-  '/signup',
+  '/signupUser',
   fileUpload(fileValidation.image).single('image'),
-  validation(validators.signUp),
-  asyncHandler(authController.signUp),
+  validation(validators.signUpUser),
+  asyncHandler(authController.signUpUser),
+);
+router.post(
+  '/signupDoctor',
+  fileUpload(fileValidation.image).single('image'),
+  validation(validators.signUpDoctor),
+  asyncHandler(authController.signUpDoctor),
 );
 
 router.get('/confirmEmail/:token', asyncHandler(authController.confirmEmail));

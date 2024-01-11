@@ -1,5 +1,6 @@
 import { globalErrorHandler } from '../utils/errorHandling.js';
 import authRouter from './auth/auth.router.js';
+import doctorRouter from './doctor/doctor.router.js';
 import connectDB from '../../DB/connection.js';
 
 const initApp = async (app, express) => {
@@ -9,6 +10,7 @@ const initApp = async (app, express) => {
     return res.status(200).json({ message: 'welcome' });
   });
   app.use('/auth', authRouter);
+  app.use('/doctor', doctorRouter);
 
   app.get('*', (req, res) => {
     res.status(500).json({ message: 'page NOT found..' });

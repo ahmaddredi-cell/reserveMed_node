@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
 import userModel from '../../DB/model/user.model.js';
 import { asyncHandler } from '../utils/errorHandling.js';
+import doctorModel from '../../DB/model/doctor.model.js';
 
 export const roles = {
-  Admin: 'Admin',
-  User: 'User',
+  Doctor: 'Doctor',
+  User: 'Patient',
 };
 export const auth = (accessRoles = []) => {
   return asyncHandler(async (req, res, next) => {
@@ -19,9 +20,15 @@ export const auth = (accessRoles = []) => {
       return next(new Error(`Invalid authorization`, { cause: 401 }));
     }
 
-    const user = await userModel
+    let user = await userModel
       .findById(decoded.id)
       .select('userName role changePasswordTime');
+
+      if(!user){
+        user=await doctorModel
+          .findById(decoded.id)
+          .select('userName role changePasswordTime');
+      }
 
     if (!user) {
       return next(new Error(`User not registered`, { cause: 401 }));
