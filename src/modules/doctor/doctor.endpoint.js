@@ -1,7 +1,7 @@
 import { roles } from '../../middleware/auth.js';
 
 export const endPoints = {
-  getAllDoctors: [roles.Doctor],
+  getAllDoctors: [roles.Doctor,roles.User],
   getScheduleDoctor:[roles.Doctor],
   createSchedule: [roles.Doctor],
   updateSchedule: [roles.Doctor],

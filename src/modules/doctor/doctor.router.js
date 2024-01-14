@@ -6,8 +6,11 @@ import { asyncHandler } from '../../utils/errorHandling.js';
 import { auth } from '../../middleware/auth.js';
 import { endPoints } from './doctor.endpoint.js';
 import fileUpload,{fileValidation} from '../../utils/multer.js';
+import appointmentRouter from './../appointment/appointment.router.js'
 
 const router = Router();
+router.use('/:id/appointment',appointmentRouter);
+
 
 router.get(
   '/getAllDoctor',

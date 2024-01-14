@@ -22,8 +22,8 @@ export const signUpUser = async (req, res, next) => {
     return next(new Error('email exists', { cause: 409 }));
   }
 
-  const doctor=await doctorModel.findOne({email})
-  if(doctor){
+  const doctor = await doctorModel.findOne({ email });
+  if (doctor) {
     return next(new Error('email exists', { cause: 409 }));
   }
   const hashedPassword = await bcrypt.hash(
@@ -65,16 +65,22 @@ export const signUpDoctor = async (req, res, next) => {
     address,
   } = req.body;
 
-  const doctor = await doctorModel.findOne({ email });
-
+  const doctor = await doctorModel.findOne({ email })
   if (doctor) {
     return next(new Error('email exists', { cause: 409 }));
   }
-   const user = await userModel.findOne({ email });
+  const user = await userModel.findOne({ email });
 
-   if (user) {
-     return next(new Error('email exists', { cause: 409 }));
-   }
+  if (user) {
+    return next(new Error('email exists', { cause: 409 }));
+  }
+  const existingUserName = await doctorModel.findOne({ userName });
+  
+  if (existingUserName) {
+    return next(
+      new Error(`username ${existingUserName.userName}, is already Exists`, { cause: 409 }),
+    );
+  }
 
   const hashedPassword = await bcrypt.hash(
     password,
@@ -93,7 +99,7 @@ export const signUpDoctor = async (req, res, next) => {
   const createDoctor = await doctorModel.create({
     userName,
     email,
-    slug:slugify(userName),
+    slug: slugify(userName),
     password: hashedPassword,
     image: { secure_url, public_id },
     ticketPrice,
@@ -103,9 +109,10 @@ export const signUpDoctor = async (req, res, next) => {
     address,
   });
 
-  return res.status(201).json({ message: 'success signup doctor', createDoctor });
+  return res
+    .status(201)
+    .json({ message: 'success signup doctor', createDoctor });
 };
-
 
 export const confirmEmail = async (req, res, next) => {
   const token = req.params.token;
@@ -118,25 +125,25 @@ export const confirmEmail = async (req, res, next) => {
     { confirmEmail: true },
   );
   // If the user is not found in the user model, check the doctor model
-    if (!user) {
-      user = await doctorModel.findOneAndUpdate(
-        { email: decoded.email, confirmEmail: false },
-        { confirmEmail: true }
-      );}
+  if (!user) {
+    user = await doctorModel.findOneAndUpdate(
+      { email: decoded.email, confirmEmail: false },
+      { confirmEmail: true },
+    );
+  }
   if (!user) {
     return next(
       new Error('Invalid verify OR your Email is verified', { cause: 400 }),
     );
   }
   return res.redirect(process.env.LOGINFRONTEND);
-  
 };
 
 export const signIn = async (req, res, next) => {
   const { email, password } = req.body;
   let user = await userModel.findOne({ email });
-  if(!user){
-    user=await doctorModel.findOne({email})
+  if (!user) {
+    user = await doctorModel.findOne({ email });
   }
   if (!user) {
     return next(new Error('data Invalid', { cause: 400 }));
@@ -175,7 +182,7 @@ export const sendCode = async (req, res, next) => {
   // Generate a 4-digit code
   let code = customAlphabet('123456789atyuio@#$&sdASCFER', 4);
   code = code();
-  
+
   // Update the sendCode field in the corresponding model
   if (existingUser.role === 'User') {
     await userModel.findOneAndUpdate(

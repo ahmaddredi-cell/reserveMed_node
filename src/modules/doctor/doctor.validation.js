@@ -77,4 +77,4 @@ const deleteAllSchedule = Joi.object({
 const getScheduleDoctor = Joi.object({
   id: idSchema,
 });
-export { createSchedule, getScheduleDoctor,updateSchedule, getAllDoctor, updateDoctorProfile,deleteDay,deleteAllSchedule };
+export { idSchema,daySchema,time12HourFormatSchema,time24HourFormatSchema ,createSchedule, getScheduleDoctor,updateSchedule, getAllDoctor, updateDoctorProfile,deleteDay,deleteAllSchedule };

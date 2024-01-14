@@ -56,9 +56,15 @@ const doctorSchema = new Schema(
     schedule: [
       {
         day: { type: Date, required: true },
-        dayName:{type:String},
+        dayName: { type: String },
         timeSlots: [{ type: String, required: true }],
-        noOfSlots:{type:Number,default:0}
+        divideTimeSlots: [
+          {
+            text: { type: String},
+            isBooked: { type: Boolean, default: false },
+          },
+        ],
+        noOfSlots: { type: Number, default: 0 },
       },
     ],
     reviews: [
@@ -83,9 +89,14 @@ const doctorSchema = new Schema(
       type: String,
       default: null,
     },
-    appointments: [{ type: Types.ObjectId, ref: 'Appointment' }],
+    
   },
-  { timestamps: true },
+  { timestamps: true,toJSON:{virtuals:true},toObject:{virtuals:true} },
 );
+doctorSchema.virtual('appointments', {
+  localField: '_id',
+  foreignField: 'doctorId',
+  ref: 'Appointment',
+});
 const doctorModel = mongoose.models.Doctor || model('Doctor', doctorSchema);
 export default doctorModel;

@@ -6,10 +6,13 @@
 
 import doctorModel from '../../../DB/model/doctor.model.js';
 import { pagination } from '../../utils/pagination.js';
-import moment from 'moment';
 import cloudinary from '../../utils/cloudinary.js';
 import userModel from '../../../DB/model/user.model.js';
 import slugify from 'slugify';
+import moment from 'moment';
+import momentRange from 'moment-range';
+const { extendMoment } = momentRange;
+extendMoment(moment);
 
 export const getAllDoctor = async (req, res, next) => {
   const { skip, limit } = pagination(req.query.page, req.query.limit);
@@ -27,7 +30,8 @@ export const getAllDoctor = async (req, res, next) => {
       '-password -slug -role -confirmEmail -sendCode',
     )
     .limit(limit)
-    .skip(skip);
+    .skip(skip)
+    .populate('appointments');
 
   return res.status(200).json({ message: 'all doctors', doctor });
 };
@@ -83,6 +87,7 @@ export const createSchedule = async (req, res, next) => {
         }),
       );
     }
+
     // Trim spaces from the input time slots
     const trimmedTimeSlots = timeSlots.map((slot) => slot.trim());
 
@@ -93,22 +98,38 @@ export const createSchedule = async (req, res, next) => {
 
     // Assuming formattedTimeSlots is an array of time slots in 'hh:mm a' format
     const startTime = moment(formattedTimeSlots[0], 'hh:mm a');
-    const endTime = moment(
+    let endTime = moment(
       formattedTimeSlots[formattedTimeSlots.length - 1],
       'hh:mm a',
     );
-
-    // If the end time is before the start time, add 24 hours to the end time
-    if (endTime.isBefore(startTime)) {
-      endTime.add(24, 'hours');
+    // Check if the end time is "00:00" and adjust it to "11:59 pm"
+    if (endTime.format('HH:mm') === '00:00') {
+      endTime = moment('23:59', 'HH:mm');
     }
-    // Calculate the difference in hours
-    const noOfSlots = endTime.diff(startTime, 'hours');
+    //check to ensure that the start time is before and greater than the start time
+    if (endTime.isBefore(startTime) || endTime.isSame(startTime)) {
+      return next(
+        new Error('End time must be after and greater than the start time', {
+          cause: 400,
+        }),
+      );
+    }
 
+    // Create divideTimeSlots based on existing timeSlots
+    const divideTimeSlots = [];
+    const timeRange = moment.range(startTime, endTime.subtract(1, 'minute'));
+
+    for (let slot of timeRange.by('hour')) {
+      divideTimeSlots.push({ text: slot.format('hh:mm a') });
+    }
+
+    // Calculate the no of slots
+    const noOfSlots = divideTimeSlots.length;
     doctor.schedule.push({
       day: dayAsDate,
       dayName: moment.utc(dayAsDate).format('dddd'),
       timeSlots: formattedTimeSlots,
+      divideTimeSlots: divideTimeSlots,
       noOfSlots,
     });
   }
@@ -122,6 +143,7 @@ export const createSchedule = async (req, res, next) => {
       day: moment(schedule.day).format('DD-MM-YYYY'),
       dayName: moment(schedule.day).format('dddd'),
       timeSlots: schedule.timeSlots,
+      divideTimeSlots: schedule.divideTimeSlots,
       noOfSlots: schedule.noOfSlots,
     };
   });
@@ -236,6 +258,35 @@ export const updateSchedule = async (req, res, next) => {
     moment(slot, 'HH:mm a').format('hh:mm a'),
   );
 
+  const startTime = moment(formattedUpdatedTimeSlots[0], 'hh:mm a');
+  let endTime = moment(
+    formattedUpdatedTimeSlots[formattedUpdatedTimeSlots.length - 1],
+    'hh:mm a',
+  );
+
+  // Check if the end time is "00:00" and adjust it to "11:59 pm"
+  if (endTime.format('HH:mm') === '00:00') {
+    endTime = moment('23:59', 'HH:mm');
+  }
+  //check to ensure that the start time is before and greater than the start time
+  if (endTime.isBefore(startTime) || endTime.isSame(startTime)) {
+    return next(
+      new Error('End time must be after and greater than the start time', {
+        cause: 400,
+      }),
+    );
+  }
+  // Create divideTimeSlots based on existing timeSlots
+  const divideTimeSlots = [];
+  const timeRange = moment.range(startTime, endTime.subtract(1, 'minute'));
+
+  for (let slot of timeRange.by('hour')) {
+    divideTimeSlots.push({ text: slot.format('hh:mm a') });
+  }
+
+  // Calculate the number of slots
+  const noOfSlots = divideTimeSlots.length;
+
   // Update the existing schedule with new time slots and day
   if (dayAsDate === updatedDayAsDate) {
     // Allow updating timeSlots only when day is equal to updatedDay
@@ -247,23 +298,9 @@ export const updateSchedule = async (req, res, next) => {
     doctor.schedule[existingScheduleIndex].timeSlots =
       formattedUpdatedTimeSlots;
   }
-
-  const startTime = moment(formattedUpdatedTimeSlots[0], 'hh:mm a');
-  const endTime = moment(
-    formattedUpdatedTimeSlots[formattedUpdatedTimeSlots.length - 1],
-    'hh:mm a',
-  );
-
-  // If the end time is before the start time, add 24 hours to the end time
-  if (endTime.isBefore(startTime)) {
-    endTime.add(24, 'hours');
-  }
-
-  // Calculate the difference in hours
-  const noOfSlots = endTime.diff(startTime, 'hours');
-
   // Update the noOfSlots in the schedule
   doctor.schedule[existingScheduleIndex].noOfSlots = noOfSlots;
+  doctor.schedule[existingScheduleIndex].divideTimeSlots = divideTimeSlots;
   doctor.schedule.sort((a, b) => a.day - b.day);
 
   // Save the updated doctor
@@ -275,6 +312,7 @@ export const updateSchedule = async (req, res, next) => {
       day: moment(schedule.day).format('DD-MM-YYYY'),
       dayName: moment(schedule.day).format('dddd'),
       timeSlots: schedule.timeSlots,
+      divideTimeSlots: schedule.divideTimeSlots,
       noOfSlots: schedule.noOfSlots,
     };
   });
@@ -394,6 +432,7 @@ export const deleteDay = async (req, res, next) => {
       day: moment(schedule.day).format('DD-MM-YYYY'),
       dayName: moment(schedule.day).format('dddd'),
       timeSlots: schedule.timeSlots,
+      divideTimeSlots: schedule.divideTimeSlots,
     };
   });
 

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model,Types } from 'mongoose';
+import mongoose, { Schema, model, Types } from 'mongoose';
 
 const userSchema = new Schema(
   {
@@ -63,20 +63,20 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    appointments: [
-      {
-        doctorId: { type:Types.ObjectId, ref: 'Doctor' },
-        date: { type: Date, required: true },
-        time: { type: String, required: true },
-        status: {
-          type: String,
-          enum: ['scheduled', 'canceled', 'completed'],
-          default: 'scheduled',
-        },
-      },
-    ],
+    doctorId: { type: Types.ObjectId, ref: 'Doctor' },
+    appointments: [{ type: Types.ObjectId, ref: 'Appointment' }],
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
+
+userSchema.virtual('doctor', {
+  localField: '_id',
+  foreignField: 'userId',
+  ref: 'Doctor',
+});
 const userModel = mongoose.models.User || model('User', userSchema);
 export default userModel;
