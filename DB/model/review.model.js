@@ -18,6 +18,9 @@ const reviewSchema = new Schema({
     ref: 'Patient',
     required: true,
   },
-});
+},{
+    timestamps: true,
+    
+  },);
 const reviewModel = mongoose.models.Review || model('Review',reviewSchema);
 export default reviewModel

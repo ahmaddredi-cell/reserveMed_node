@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, Types } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 
 const doctorSchema = new Schema(
   {
@@ -67,17 +67,7 @@ const doctorSchema = new Schema(
         noOfSlots: { type: Number, default: 0 },
       },
     ],
-    reviews: [
-      {
-        type: Types.ObjectId,
-        ref: 'Review',
-      },
-    ],
-    averageRating: {
-      type: Number,
-      default: 0,
-    },
-    totalRating: {
+    rating: {
       type: Number,
       default: 0,
     },
@@ -97,6 +87,11 @@ doctorSchema.virtual('appointments', {
   localField: '_id',
   foreignField: 'doctorId',
   ref: 'Appointment',
+});
+doctorSchema.virtual('review', {
+  localField: '_id',
+  foreignField: 'doctorId',
+  ref: 'Review',
 });
 const doctorModel = mongoose.models.Doctor || model('Doctor', doctorSchema);
 export default doctorModel;

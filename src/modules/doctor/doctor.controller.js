@@ -31,7 +31,8 @@ export const getAllDoctor = async (req, res, next) => {
     )
     .limit(limit)
     .skip(skip)
-    .populate('appointments');
+    .populate('appointments')
+    .populate('review');
 
   return res.status(200).json({ message: 'all doctors', doctor });
 };
@@ -56,15 +57,6 @@ export const createSchedule = async (req, res, next) => {
     //use UTC when storing and querying dates and days in MongoDB.
     // preventing potential issues with timezone conversions.
     const dayAsDate = moment.utc(day, 'DD-MM-YYYY', true).toDate();
-
-    if (!dayAsDate || dayAsDate.toString() === 'Invalid Date') {
-      return next(
-        new Error(
-          `Invalid date format for ${day}. Expected format: DD-MM-YYYY.`,
-          { cause: 400 },
-        ),
-      );
-    }
 
     // Check if the date is in the past
     if (moment(dayAsDate).isBefore(currentDate, 'day')) {
@@ -175,7 +167,13 @@ export const updateSchedule = async (req, res, next) => {
   if (!doctor) {
     return next(new Error('Doctor not Found', { cause: 404 }));
   }
-
+  if (req.user._id.toString() !== doctor._id.toString()) {
+    return next(
+      new Error('this schedule does not belog you,cant update', {
+        cause: 404,
+      }),
+    );
+  }
   const { day, updatedDay, updatedTimeSlots } = req.body;
 
   const trimmedDay = day.trim();
@@ -185,19 +183,6 @@ export const updateSchedule = async (req, res, next) => {
   const updatedDayAsDate = moment
     .utc(trimmedUpdatedDay, 'DD-MM-YYYY', true)
     .toDate();
-
-  if (
-    !dayAsDate ||
-    dayAsDate.toString() === 'Invalid Date' ||
-    !updatedDayAsDate ||
-    updatedDayAsDate.toString() === 'Invalid Date'
-  ) {
-    return next(
-      new Error('Invalid date format. Expected format: DD-MM-YYYY.', {
-        cause: 400,
-      }),
-    );
-  }
 
   // Check if the original day exists in the schedule
   const isDayExist = doctor.schedule.some((s) =>
@@ -405,6 +390,13 @@ export const deleteDay = async (req, res, next) => {
   if (!doctor) {
     return next(new Error('Doctor not Found', { cause: 404 }));
   }
+  if (req.user._id.toString() !== doctor._id.toString()) {
+    return next(
+      new Error('this schedule does not belog you,cant delete', {
+        cause: 404,
+      }),
+    );
+  }
   const { day } = req.body;
   const trimmedDay = day.trim();
   const dayAsDate = moment.utc(trimmedDay, 'DD-MM-YYYY', true).toDate();
@@ -447,6 +439,13 @@ export const deleteAllSchedule = async (req, res, next) => {
   const doctor = await doctorModel.findById(req.params.id);
   if (!doctor) {
     return next(new Error('Doctor not Found', { cause: 404 }));
+  }
+  if (req.user._id.toString() !== doctor._id.toString()) {
+    return next(
+      new Error('this schedule does not belog you,cant delete', {
+        cause: 404,
+      }),
+    );
   }
 
   // Clear the schedule array for the doctor

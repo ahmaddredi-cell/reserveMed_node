@@ -22,7 +22,7 @@ module.exports = {
   rules: {
     'no-unused-vars': ['warn', { argsIgnorePattern: 'req|res|next|err|__' }],
     'no-console': 'warn',
-    'no-mixed-operators': 'error',
+    'no-mixed-operators': 'off',
     'no-confusing-arrow': 'error',
     'no-duplicate-imports': 'error',
     'no-var': 'error',

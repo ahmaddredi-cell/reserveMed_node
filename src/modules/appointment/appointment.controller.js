@@ -83,6 +83,7 @@ export const getAppointmentForDoctor = async (req, res, next) => {
     .status(200)
     .json({ message: 'success', count: appointments.length, appointments });
 };
+
 export const getAllAppointment = async (req, res, next) => {
   const appointments = await appointmentModel.find().populate({
     path: 'doctorId',
@@ -93,18 +94,25 @@ export const getAllAppointment = async (req, res, next) => {
     .status(200)
     .json({ message: 'Success', count: appointments.length, appointments });
 };
+
 export const updateAppointment = async (req, res, next) => {
   const { updatedDayy, updatedTimee } = req.body;
   const { idAppointment } = req.params;
 
-  // Step 1: Check if the appointment exists in the  Appointment model
+  //  Check if the appointment exists in the  Appointment model
   const appointment = await appointmentModel.findById(idAppointment);
-
   if (!appointment) {
     return next(new Error('Appointment not found', { cause: 404 }));
   }
+  if (req.user._id.toString() !== appointment.patientId.toString()) {
+    return next(
+      new Error('this appointment does not belog you,cant updated', {
+        cause: 404,
+      }),
+    );
+  }
 
-  // Step 2: Check if day is the same as updatedDay
+  // Check if day is the same as updatedDay
   const doctor = await doctorModel.findById(appointment.doctorId);
 
   if (!doctor) {
@@ -171,6 +179,7 @@ export const updateAppointment = async (req, res, next) => {
   appointment.day = updatedDay;
   appointment.dayName = moment(updatedDay).format('dddd');
   appointment.time = updatedTime;
+  appointment.updatedAt = new Date();
   await appointment.save();
 
   return res
@@ -178,57 +187,53 @@ export const updateAppointment = async (req, res, next) => {
     .json({ message: 'Appointment updated successfully', appointment });
 };
 
-
-
-
-
-
 export const deleteAppointment = async (req, res, next) => {
-
-    const { idAppointment } = req.params;
-
-    // Check if the appointment exists in the Appointment model
-    const appointment = await appointmentModel.findById(idAppointment);
-
-    if (!appointment) {
-      return next(new Error('Appointment not found', { cause: 404 }));
-    }
-
-    //Check if the doctor exists in the Doctor model
-    const doctor = await doctorModel.findById(appointment.doctorId);
-
-    if (!doctor) {
-      return next(new Error('Doctor not found', { cause: 404 }));
-    }
-
-    // Check if there is a schedule for the appointment day
-    const schedule = doctor.schedule.find((s) =>
-      moment(s.day).isSame(appointment.day, 'day'),
+  const { idAppointment } = req.params;
+  // Check if the appointment exists in the Appointment model
+  const appointment = await appointmentModel.findById(idAppointment);
+  if (!appointment) {
+    return next(new Error('Appointment not found', { cause: 404 }));
+  }
+  if (req.user._id.toString() !== appointment.patientId.toString()) {
+    return next(
+      new Error('this appointment does not belog you,cant deleted', {
+        cause: 404,
+      }),
     );
+  }
 
-    if (!schedule) {
-      return next(new Error('Invalid day for the doctor', { cause: 400 }));
-    }
+  //Check if the doctor exists in the Doctor model
+  const doctor = await doctorModel.findById(appointment.doctorId);
 
-    // Find the time slot in divideTimeSlots and set isBooked to false
-    const timeSlot = schedule.divideTimeSlots.find(
-      (slot) => slot.text === appointment.time,
-    );
+  if (!doctor) {
+    return next(new Error('Doctor not found', { cause: 404 }));
+  }
 
-    if (!timeSlot) {
-      return next(new Error('Invalid time for the doctor', { cause: 400 }));
-    }
+  // Check if there is a schedule for the appointment day
+  const schedule = doctor.schedule.find((s) =>
+    moment(s.day).isSame(appointment.day, 'day'),
+  );
 
-    timeSlot.isBooked = false;
+  if (!schedule) {
+    return next(new Error('Invalid day for the doctor', { cause: 400 }));
+  }
 
-    // Save the updated doctor model
-    await doctor.save();
+  // Find the time slot in divideTimeSlots and set isBooked to false
+  const timeSlot = schedule.divideTimeSlots.find(
+    (slot) => slot.text === appointment.time,
+  );
 
-    // Delete the appointment
-    await appointmentModel.findByIdAndDelete(idAppointment);
+  if (!timeSlot) {
+    return next(new Error('Invalid time for the doctor', { cause: 400 }));
+  }
 
-    return res
-      .status(200)
-      .json({ message: 'Appointment deleted successfully' });
-  
+  timeSlot.isBooked = false;
+
+  // Save the updated doctor model
+  await doctor.save();
+
+  // Delete the appointment
+  await appointmentModel.findByIdAndDelete(idAppointment);
+
+  return res.status(200).json({ message: 'Appointment deleted successfully' });
 };

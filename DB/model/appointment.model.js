@@ -12,7 +12,7 @@ const appointmentSchema = new Schema({
     enum: ['Pending', 'Confirmed', 'Cancelled'],
     default: 'Pending',
   },
-});
+},{timestamps:true});
 
 const appointmentModel =
   mongoose.models.Appointment || model('Appointment', appointmentSchema);
